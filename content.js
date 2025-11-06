@@ -1,10 +1,10 @@
 // Log
 function log(...args) {
-  console.log("[BSCScan Injector]", ...args);
+  console.log("[Sol79 Injector]", ...args);
 }
 
-// Thực hiện việc copy và mở trang BscScan
-async function copyAndOpenBscScan(copyButton) {
+// Thực hiện việc copy và mở trang browser
+async function copyAndOpenBrowser(copyButton) {
   try {
     log("Bắt đầu copy...");
     copyButton.click();
@@ -16,10 +16,16 @@ async function copyAndOpenBscScan(copyButton) {
     const address = await navigator.clipboard.readText();
     log("Clipboard:", address);
 
-    if (address && address.startsWith("0x")) {
-      const url = `https://bscscan.com/address/${address}`;
-      log("Mở link:", url);
-      window.open(url, "_blank");
+    if (address) {
+      if (address.startsWith("0x")) {
+        const url = `https://bscscan.com/address/${address}`;
+        log("Mở link:", url);
+        window.open(url, "_blank");
+      } else {
+        const url = `https://gmgn.ai/sol/address/${address}`;
+        log("Mở link:", url);
+        window.open(url, "_blank");
+      }
     } else {
       alert("❌ Không lấy được địa chỉ hợp lệ từ clipboard!");
     }
@@ -54,7 +60,7 @@ function injectBscButton() {
 
       newBtn.addEventListener("click", e => {
         e.stopPropagation();
-        copyAndOpenBscScan(copyBtn);
+        copyAndOpenBrowser(copyBtn);
       });
     
       // Chèn nút BscScan

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "BscScan Address Opener",
+  "name": "Sol79",
   "version": "1.2",
-  "description": "Sol7Sol9 thế giới coin trong tầm tay tay- Khắn Xù",
+  "description": "Thế giới coin trong tầm tay tay - Khắn Xù",
   "permissions": ["activeTab", "clipboardRead", "scripting"],
   "content_scripts": [
     {
