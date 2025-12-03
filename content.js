@@ -123,12 +123,22 @@ function injectListviewSolscan() {
         return; // bỏ qua xử lý loại khác
       } else if (span.classList.contains("w-auto") && span.classList.contains("max-w-full") && span.classList.contains("whitespace-nowrap")) {
         // -------- Loại full--------
-        // Loại B: có div.inline[data-state="closed"] nhưng **không có icon token**
-        const delayedDiv = span.querySelector('div.inline[data-state="closed"]');
-        const iconTokenRemove = span.querySelector('span.inline-flex.items-center.align-middle.mr-1, span.inline-flex.items-center.align-middle.cursor-pointer');
+        // Loại có div.inline[data-state="closed"] nhưng **không có icon token**
+        // const delayedDiv = span.querySelector('div.inline[data-state="closed"]');
+        // const iconTokenRemove = span.querySelector('span.inline-flex.items-center.align-middle.mr-1, span.inline-flex.items-center.align-middle.cursor-pointer');
 
         // Bỏ qua span có iconToken Loại đi
-        if (!delayedDiv || iconTokenRemove) return;
+        const delayedDiv = span.querySelector('div.inline[data-state="closed"]');
+        // nếu không có delayedDiv thì bỏ (theo logic cũ của bạn)
+        if (!delayedDiv) return;
+
+        // tìm ảnh (nếu có) trong span
+        const iconImg = span.querySelector('img[src]');
+
+        // nếu có ảnh và ảnh không phải token_creator_icon.svg => bỏ qua
+        if (iconImg && !iconImg.src.includes('token_creator_icon.svg')) return;
+
+        // Ngược lại (icon là token_creator_icon.svg hoặc không có icon) → tiếp tục xử lý
 
         const iconToken = span.querySelector('span.inline-flex.items-center.align-middle');
         const linkDiv = span.querySelector('div.inline[data-state="closed"]');
