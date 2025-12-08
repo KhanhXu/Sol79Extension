@@ -1,9 +1,20 @@
 {
   "manifest_version": 3,
   "name": "Sol79",
-  "version": "1.4",
+  "version": "1.5",
   "description": "Thế giới coin trong tầm tay tay - Khắn Xù",
-  "permissions": ["activeTab", "clipboardRead", "scripting"],
+  "permissions": ["activeTab", "clipboardRead", "scripting", "alarms", "storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icons/icon48.png"
+  },
+   "icons": {
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
