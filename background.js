@@ -1,8 +1,22 @@
-
 const WS_URL = "wss://ws.mevx.io/api/v1/ws";
+const GMGN_ADDRESS_URL = "https://gmgn.ai/sol/address/";
+const GMGN_TOKEN_URL = "https://gmgn.ai/sol/token/";
 
 let ws = null;
 let pingTimer = null;
+let SNIPED_TOKENS = new Set();  // ⚠ Không lặp, lookup O(1)
+
+// ============ UI ICON CONTROL ============
+
+function setIcon(status){
+    chrome.action.setIcon({
+        path: `icons/${status ? "ws_on.png" : "ws_off.png"}`
+    });
+    console.log(`🎨 Icon → ${status ? "🟢 ON" : "🔴 OFF"}`);
+}
+
+// ======= ALWAYS START WEBSOCKET WHEN EXTENSION LOAD =======
+startSocket();
 
 // ===========================
 // 🚀 START WEBSOCKET
@@ -12,32 +26,31 @@ async function startSocket() {
     const config = await chrome.storage.sync.get(["sol_wallet","bsc_wallet","token_notify"]);
     if (!config.token_notify){
         console.warn("⚠ Chưa có Token");
+        setIcon(false);
         return;
     }
 
     if (ws && ws.readyState === WebSocket.OPEN){
         console.log("⚡ WS đã chạy, bỏ qua restart.");
+        setIcon(true);
         return;
     }
 
-    console.log("🔌 Connecting socket mevx.io");
+    console.log("🔌 Connecting socket Mevx.io");
 
     ws = new WebSocket(WS_URL);
 
     ws.onopen = () => {
         console.log("🟢 WS Connected!");
-        
+        setIcon(true);
+
         if (config.sol_wallet){
             subscribeSolana(config.sol_wallet, config.token_notify);
-        } else {
-            console.log("🟨 Không có ví Solana");
-        }
+        } else console.log("🟨 Không có ví Solana");
 
-        if (config.bsc_wallet){
-            subscribeBSC(config.bsc_wallet);
-        } else {
-            console.log("🟨 Không có ví BSC");
-        }
+        // if (config.bsc_wallet){
+        //     subscribeBSC(config.bsc_wallet);
+        // } else console.log("🟨 Không có ví BSC");
 
         startPing();
     };
@@ -47,12 +60,14 @@ async function startSocket() {
     ws.onclose = () => {
         console.log("🔴 WS Closed → reconnecting...");
         stopPing();
+        setIcon(false);
         setTimeout(startSocket, 5000);
     };
 
     ws.onerror = err => {
         console.error("⛔ WS Error:", err);
         ws.close();
+        setIcon(false);
     };
 }
 
@@ -100,12 +115,12 @@ function subscribeSolana(sol_wallet, authToken){
 }
 
 // ===========================
-// 🔄 PING SOCKET mỗi 15s
+// 🔄 PING mỗi 15s
 // ===========================
 function startPing(){
     stopPing();
     pingTimer = setInterval(()=>{
-        if(ws.readyState === WebSocket.OPEN){
+        if(ws?.readyState === WebSocket.OPEN){
             ws.send(`{"method":"ping"}`);
             console.log("📩 Ping → WS");
         }
@@ -129,38 +144,89 @@ async function handleMessage(raw){
 
     console.log("📥 WS DATA:", data);
 
-    // Token notify filter
-    const cfg = await chrome.storage.sync.get("token_notify");
-    if(!cfg.token_notify) return;
+    // Extract token
+    const snipeToken = extractTokenMessageSniping(raw);
+    if(snipeToken){
+        // Nếu token đã sniped rồi -> bỏ qua
+        if(isSniped(snipeToken)){
+            console.log(`⛔ SKIP - Token already sniped: ${snipeToken}`);
+            return;
+        }
 
-    const notifyList = cfg.token_notify.split(",").map(x=>x.trim().toUpperCase());
-    const token = data?.result?.token;
-    if(!token) return;
-
-    if(notifyList.includes(token.toUpperCase())){
-        chrome.notifications.create({
-            type:"basic",
-            iconUrl:"icons/icon128.png",
-            title:`Token Detected: ${token}`,
-            message: JSON.stringify(data.result,null,2)
+        // MỞ TAB GMGN AUTOMATIC
+        chrome.tabs.create({
+            url: GMGN_TOKEN_URL + snipeToken
         });
-        console.log(`🔔 Notify: ${token}`);
+
+         // Lần đầu sniping → xử lý
+        markTokenSniped(snipeToken);
+        console.log("🎯 NEW SNIPING TOKEN:", snipeToken);
+
+        // Phát chuông
+        playNotifySound();
     }
 }
+
+/**
+ * Lưu token vào list tránh xử lý lại
+ */
+function markTokenSniped(token){
+    SNIPED_TOKENS.add(token);
+}
+
+/**
+ * Kiểm tra token đã xử lý chưa
+ */
+function isSniped(token){
+    return SNIPED_TOKENS.has(token);
+}
+
+/**
+ * Extract Token Message Sniping
+ * @param {string} data  - raw response WebSocket
+ * @returns {string|null}
+ */
+function extractTokenMessageSniping(data){
+
+    let root;
+    try { root = JSON.parse(data); }
+    catch { return null; }
+
+    if (!root.method || !root.params) return null;
+    if (root.method !== "notification") return null;
+
+    const params = root.params;
+    if (!params.notificationType || !params.message) return null;
+    if (params.notificationType !== "snipe") return null;
+
+    const message = params.message;
+    if (!message.includes("Sniping")) return null;
+
+    // Regex như bản Java
+    const match = message.match(/https:\/\/solscan\.io\/token\/([^"&<]+)/);
+    return match ? match[1] : null;
+}
+
+// Hàm phát âm thanh
+function playNotifySound() {
+    const audio = new Audio(chrome.runtime.getURL("sounds/tele.wav"));
+    audio.volume = 1.0; // max volume (0.0 - 1.0)
+    audio.play().catch(err => console.error("Sound error:", err));
+}
+
 
 // ===========================
 // 📩 Nhận lệnh từ popup
 // ===========================
 chrome.runtime.onMessage.addListener((msg,_,sendResponse)=>{
     
-    if (msg.type === "start_ws") {
+    if(msg.type === "start_ws"){
         startSocket();
-        sendResponse({ started: true });
+        sendResponse({started:true});
     }
 
     if(msg.type==="save_config"){
-        chrome.storage.sync.set(msg.data, () => sendResponse({ ok: true }));
+        chrome.storage.sync.set(msg.data,()=>sendResponse({ok:true}));
         return true;
     }
 });
-
