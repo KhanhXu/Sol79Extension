@@ -207,12 +207,30 @@ function extractTokenMessageSniping(data){
     return match ? match[1] : null;
 }
 
-// Hàm phát âm thanh
-function playNotifySound() {
-    const audio = new Audio(chrome.runtime.getURL("sounds/tele.wav"));
-    audio.volume = 1.0; // max volume (0.0 - 1.0)
-    audio.play().catch(err => console.error("Sound error:", err));
+async function ensureOffscreenDocument() {
+    const exists = await chrome.offscreen.hasDocument();
+    if (!exists) {
+        await chrome.offscreen.createDocument({
+            url: "offscreen.html",
+            reasons: ["AUDIO_PLAYBACK"],
+            justification: "Play notification sound"
+        });
+    }
 }
+
+// Hàm phát âm thanh
+async function playNotifySound() {
+    await ensureOffscreenDocument();
+    const url = chrome.runtime.getURL("sounds/tele.wav");
+    chrome.runtime.sendMessage({ type: "play_sound", url });
+}
+
+// // Hàm phát âm thanh
+// function playNotifySound() {
+//     const audio = new Audio(chrome.runtime.getURL("sounds/tele.wav"));
+//     audio.volume = 1.0; // max volume (0.0 - 1.0)
+//     audio.play().catch(err => console.error("Sound error:", err));
+// }
 
 
 // ===========================

@@ -21,6 +21,12 @@ function isSolscanSite() {
   return location.hostname === "solscan.io";
 }
 
+// Kiểm tra GMGN
+function isGmgnSite() {
+  log("✅ Là trang Gmgn");
+  return location.hostname === "gmgn.ai";
+}
+
 // ============================
 //       Inject SolScan
 // ============================
@@ -61,6 +67,25 @@ function injectSolScanHeader() {
 
     const address = match[1];
     openBrowser(GMGN_URL + address);
+  });
+
+
+  // Khi bấm mở trang web bằng nút giữa
+  btn.addEventListener('auxclick', async e => {
+    if (e.button === 1) {
+      e.preventDefault();     // CHẶN mở tab mới
+      e.stopPropagation();
+
+      // Lấy address từ URL: https://solscan.io/account/<addr>
+      const match = location.pathname.match(/\/account\/([A-Za-z0-9]+)/);
+      if (!match) {
+        alert("Không tìm thấy địa chỉ ví!");
+        return;
+      }
+
+      const address = match[1];
+      openBrowser(GMGN_URL + address);
+      }
   });
 
   // ====== Chèn vào sau Tip block ======
@@ -119,6 +144,25 @@ function injectListviewSolscan() {
           openBrowser(GMGN_TOKEN_URL + token);
         });
 
+        // 1. Chặn middle-click trên link
+        link.addEventListener("auxclick", e => {
+          if (e.button === 1) {
+            e.preventDefault();
+          }
+        });
+
+        // Khi bấm mở trang web bằng nút giữa
+        btn.addEventListener('auxclick', async e => {
+          if (e.button === 1) {
+            e.preventDefault();     // CHẶN mở tab mới
+            e.stopPropagation();
+            copyDiv.click(); // bấm div copy
+            await new Promise(r => setTimeout(r, 50));
+            const token = link.getAttribute("href").split("/").pop();
+            openBrowser(GMGN_TOKEN_URL + token);
+          }
+        });
+
         copyDiv.insertAdjacentElement("afterend", btn);
         return; // bỏ qua xử lý loại khác
       } else if (span.classList.contains("w-auto") && span.classList.contains("max-w-full") && span.classList.contains("whitespace-nowrap")) {
@@ -172,6 +216,25 @@ function injectListviewSolscan() {
           openBrowser(GMGN_URL + addr);
         });
 
+        // 1. Chặn middle-click trên link
+        link.addEventListener("auxclick", e => {
+          if (e.button === 1) {
+            e.preventDefault();
+          }
+        });
+
+        // Khi bấm mở trang web bằng nút giữa
+        btn.addEventListener('auxclick', async e => {
+          if (e.button === 1) {
+            e.preventDefault();     // CHẶN mở tab mới
+            e.stopPropagation();
+            copyDiv.click();
+            await new Promise(r => setTimeout(r, 50));
+            const addr = link.getAttribute("href").split("/").pop();
+            openBrowser(GMGN_URL + addr);
+          }
+        });
+
         copyDiv.insertAdjacentElement("afterend", btn);
       }
     });
@@ -209,6 +272,16 @@ function injectMevx() {
       newBtn.addEventListener("click", e => {
         e.stopPropagation();
         copyAndOpenBrowser(copyBtn);
+      });
+
+      // Khi bấm mở trang web bằng nút giữa
+      newBtn.addEventListener('auxclick', (e) => {
+        if (e.button === 1) {
+          e.preventDefault();     // CHẶN mở tab mới
+          e.stopPropagation(); 
+          e.stopImmediatePropagation?.();
+          copyAndOpenBrowser(copyBtn);
+        }
       });
 
       copyBtn.insertAdjacentElement("afterend", newBtn);
@@ -249,6 +322,89 @@ async function copyAndOpenBrowser(copyButton) {
 }
 
 // ============================
+//       Inject Gmgn
+// ============================
+function injectGmgn() {
+  if (!isGmgnSite()) return;
+
+  // Tìm tất cả các dòng trong list view
+  const selector = 'div.flex.items-center.text-text-100.text-\\[12px\\].font-medium.gap-\\[4px\\]';
+  const rows = document.querySelectorAll(selector);
+
+  rows.forEach(row => {
+      // Tránh chèn nút trùng nhiều lần
+      if (row.querySelector('.gmgn-btn')) return;
+
+      // Link có thể thuộc 1 trong 3 loại
+      const link = row.querySelector(`
+          a[href*="pump.fun/coin/"],
+          a[href*="bonk.fun/token/"],
+          a[href*="meteora.ag/pools"]
+      `);
+
+      if (!link) return;
+
+      const href = link.getAttribute('href');
+      let token = null;
+
+      // 1) pump.fun -> /coin/<token>
+      if (href.includes("pump.fun/coin/")) {
+          const m = href.match(/\/coin\/([^\/]+)/);
+          if (m) token = m[1];
+      }
+
+      // 2) bonk.fun -> /token/<token>
+      if (!token && href.includes("bonk.fun/token/")) {
+          const m = href.match(/\/token\/([^\/]+)/);
+          if (m) token = m[1];
+      }
+
+      // 3) meteora -> after ? 
+      if (!token && href.includes("meteora.ag/pools")) {
+          const idx = href.indexOf('?');
+          if (idx !== -1) {
+              token = href.substring(idx + 1).trim();
+          }
+      }
+
+      if (!token) return;
+
+      // Tạo nút mới
+      const newBtn = document.createElement("button");
+      newBtn.innerText = GMGN;
+      newBtn.className = "gmgn-btn";
+      newBtn.style.marginLeft = "6px";
+      newBtn.style.background = "#1f6feb";
+      newBtn.style.color = "#fff";
+      newBtn.style.border = "none";
+      newBtn.style.borderRadius = "12px";
+      newBtn.style.padding = "2px 6px";
+      newBtn.style.fontSize = "12px";
+      newBtn.style.cursor = "pointer";
+
+      // Khi bấm mở trang web
+      newBtn.addEventListener('click', (e) => {
+        e.stopPropagation();   // ❗ chặn click lan lên row listview
+        e.preventDefault();    // ❗ không cho trigger handler mặc định của item
+        // SOL → GMGN
+        openBrowser(GMGN_TOKEN_URL + token);
+      });
+
+      // Khi bấm mở trang web
+      newBtn.addEventListener('auxclick', (e) => {
+        if (e.button === 1) {
+          e.stopPropagation();   // ❗ chặn click lan lên row listview
+          // SOL → GMGN
+          openBrowser(GMGN_TOKEN_URL + token);
+        }
+      });
+
+      // Chèn nút vào row
+      row.appendChild(newBtn);
+  });
+}
+
+// ============================
 //   Utils
 // ============================
 function openBrowser(url) {
@@ -281,6 +437,15 @@ function initInjector() {
     injectListviewSolscan();
   
     const observer = new MutationObserver(() => injectSolScanHeader());
+    observer.observe(document.body, { childList: true, subtree: true });
+    return;
+  }
+
+  if (isGmgnSite()) {
+    log("🌐 Trang Gmgn.ai detected → chạy injectGmgn()");
+    injectGmgn();
+
+    const observer = new MutationObserver(() => injectGmgn());
     observer.observe(document.body, { childList: true, subtree: true });
     return;
   }
