@@ -144,13 +144,6 @@ function injectListviewSolscan() {
           openBrowser(GMGN_TOKEN_URL + token);
         });
 
-        // 1. Chặn middle-click trên link
-        link.addEventListener("auxclick", e => {
-          if (e.button === 1) {
-            e.preventDefault();
-          }
-        });
-
         // Khi bấm mở trang web bằng nút giữa
         btn.addEventListener('auxclick', async e => {
           if (e.button === 1) {
@@ -214,13 +207,6 @@ function injectListviewSolscan() {
           await new Promise(r => setTimeout(r, 50));
           const addr = link.getAttribute("href").split("/").pop();
           openBrowser(GMGN_URL + addr);
-        });
-
-        // 1. Chặn middle-click trên link
-        link.addEventListener("auxclick", e => {
-          if (e.button === 1) {
-            e.preventDefault();
-          }
         });
 
         // Khi bấm mở trang web bằng nút giữa
