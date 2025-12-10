@@ -225,14 +225,6 @@ async function playNotifySound() {
     chrome.runtime.sendMessage({ type: "play_sound", url });
 }
 
-// // Hàm phát âm thanh
-// function playNotifySound() {
-//     const audio = new Audio(chrome.runtime.getURL("sounds/tele.wav"));
-//     audio.volume = 1.0; // max volume (0.0 - 1.0)
-//     audio.play().catch(err => console.error("Sound error:", err));
-// }
-
-
 // ===========================
 // 📩 Nhận lệnh từ popup
 // ===========================

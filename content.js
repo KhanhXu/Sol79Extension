@@ -4,6 +4,7 @@
 const BSC_URL = "https://bscscan.com/address/";
 const GMGN_URL = "https://gmgn.ai/sol/address/";
 const GMGN_TOKEN_URL = "https://gmgn.ai/sol/token/";
+const GMGN_TOKEN_BSC_URL = "https://gmgn.ai/bsc/token/";
 const GMGN = "GMGN";
 
 // Log
@@ -160,10 +161,6 @@ function injectListviewSolscan() {
         return; // bỏ qua xử lý loại khác
       } else if (span.classList.contains("w-auto") && span.classList.contains("max-w-full") && span.classList.contains("whitespace-nowrap")) {
         // -------- Loại full--------
-        // Loại có div.inline[data-state="closed"] nhưng **không có icon token**
-        // const delayedDiv = span.querySelector('div.inline[data-state="closed"]');
-        // const iconTokenRemove = span.querySelector('span.inline-flex.items-center.align-middle.mr-1, span.inline-flex.items-center.align-middle.cursor-pointer');
-
         // Bỏ qua span có iconToken Loại đi
         const delayedDiv = span.querySelector('div.inline[data-state="closed"]');
         // nếu không có delayedDiv thì bỏ (theo logic cũ của bạn)
@@ -325,33 +322,45 @@ function injectGmgn() {
       const link = row.querySelector(`
           a[href*="pump.fun/coin/"],
           a[href*="bonk.fun/token/"],
-          a[href*="meteora.ag/pools"]
+          a[href*="meteora.ag/pools"],
+          a[href*="four.meme/token/"]
       `);
 
       if (!link) return;
 
       const href = link.getAttribute('href');
       let token = null;
+      let isBsc = false;
 
-      // 1) pump.fun -> /coin/<token>
+      // pump.fun -> /coin/<token>
       if (href.includes("pump.fun/coin/")) {
           const m = href.match(/\/coin\/([^\/]+)/);
           if (m) token = m[1];
       }
 
-      // 2) bonk.fun -> /token/<token>
+      // bonk.fun -> /token/<token>
       if (!token && href.includes("bonk.fun/token/")) {
           const m = href.match(/\/token\/([^\/]+)/);
           if (m) token = m[1];
       }
 
-      // 3) meteora -> after ? 
+      // meteora -> after ? 
       if (!token && href.includes("meteora.ag/pools")) {
           const idx = href.indexOf('?');
           if (idx !== -1) {
               token = href.substring(idx + 1).trim();
           }
       }
+
+      // four.meme -> /token/<TOK>
+      if (!token && href.includes("four.meme/token/")) {
+          const m = href.match(/\/token\/([^\/]+)/);
+          if (m) {
+            token = m[1];
+            isBsc = true;
+          }
+      }
+
 
       if (!token) return;
 
@@ -373,7 +382,11 @@ function injectGmgn() {
         e.stopPropagation();   // ❗ chặn click lan lên row listview
         e.preventDefault();    // ❗ không cho trigger handler mặc định của item
         // SOL → GMGN
-        openBrowser(GMGN_TOKEN_URL + token);
+        if (isBsc) {
+          openBrowser(GMGN_TOKEN_BSC_URL + token);
+        } else {
+          openBrowser(GMGN_TOKEN_URL + token);
+        }
       });
 
       // Khi bấm mở trang web
@@ -381,7 +394,11 @@ function injectGmgn() {
         if (e.button === 1) {
           e.stopPropagation();   // ❗ chặn click lan lên row listview
           // SOL → GMGN
-          openBrowser(GMGN_TOKEN_URL + token);
+          if (isBsc) {
+            openBrowser(GMGN_TOKEN_BSC_URL + token);
+          } else {
+            openBrowser(GMGN_TOKEN_URL + token);
+          }
         }
       });
 
