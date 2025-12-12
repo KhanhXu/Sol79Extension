@@ -324,6 +324,7 @@ function injectGmgn() {
           a[href*="bonk.fun/token/"],
           a[href*="meteora.ag/pools"],
           a[href*="moon.it/tokens/"],
+          a[href*="jup.ag/tokens/"],
           a[href*="four.meme/token/"]
       `);
 
@@ -355,6 +356,12 @@ function injectGmgn() {
 
       // moon.it -> /tokens/<token>
       if (!token && href.includes("moon.it/tokens/")) {
+          const m = href.match(/\/tokens\/([^\/]+)/);
+          if (m) token = m[1];
+      }
+
+      // jup.ag -> /tokens/<token>
+      if (!token && href.includes("jup.ag/tokens/")) {
           const m = href.match(/\/tokens\/([^\/]+)/);
           if (m) token = m[1];
       }
