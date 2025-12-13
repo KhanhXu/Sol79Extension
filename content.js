@@ -325,6 +325,7 @@ function injectGmgn() {
           a[href*="meteora.ag/pools"],
           a[href*="moon.it/tokens/"],
           a[href*="jup.ag/tokens/"],
+          a[href*="raydium.io/launchpad/token/"],
           a[href*="four.meme/token/"]
       `);
 
@@ -363,6 +364,12 @@ function injectGmgn() {
       // jup.ag -> /tokens/<token>
       if (!token && href.includes("jup.ag/tokens/")) {
           const m = href.match(/\/tokens\/([^\/]+)/);
+          if (m) token = m[1];
+      }
+
+      // raydium.io -> raydium.io/launchpad/token/?mint=<token>
+      if (!token && href.includes("raydium.io/launchpad/token/?mint=")) {
+          const m = href.match(/mint=([^\/]+)/);
           if (m) token = m[1];
       }
 
